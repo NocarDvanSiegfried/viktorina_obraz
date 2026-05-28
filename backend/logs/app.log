@@ -59018,3 +59018,135 @@ JSON_END
 2026-05-28 15:19:05,657 | INFO | viktorina_obraz | POST /student/answer | result=77a62575-4f4a-4491-84c7-1c53e500bbee question=68792e37-4b86-47f8-b8c3-2aca51d5d0cb
 2026-05-28 15:19:05,778 | INFO | viktorina_obraz | POST /student/answer | result=77a62575-4f4a-4491-84c7-1c53e500bbee question=8d57feda-f73d-4446-ba77-2b8c11e62b42
 2026-05-28 15:19:05,800 | INFO | viktorina_obraz | POST /student/finish | result=77a62575-4f4a-4491-84c7-1c53e500bbee score=2/2
+2026-05-28 15:51:02,850 | INFO | viktorina_obraz | POST /quiz/generate-from-materials | owner=prod-smoke-00000000-0000-4000-8000-000000000001 subject=Biology topic=Cell sources=['manual_text']
+2026-05-28 15:51:02,850 | INFO | viktorina_obraz | generate_quiz_from_fragments | subject=Biology grade=8 topic=Cell count=2
+2026-05-28 15:51:02,850 | INFO | viktorina_obraz | GigaChat mock chat (E2E_MOCK_GIGACHAT)
+2026-05-28 15:51:02,850 | INFO | viktorina_obraz | RAW_MODEL_RESPONSE: 
+[JSON_START]
+{
+  "quiz_title": "E2E Викторина",
+  "subject": "Биология",
+  "grade": "8",
+  "topic": "Клетка",
+  "questions": [
+    {
+      "type": "single_choice",
+      "text": "Что является основной единицей жизни?",
+      "options": ["Атом", "Клетка", "Орган", "Ткань"],
+      "correct_answers": ["Клетка"],
+      "explanation": "Клетка — основная структурная единица.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    },
+    {
+      "type": "true_false",
+      "text": "Клетка не имеет мембраны.",
+      "options": ["Верно", "Неверно"],
+      "correct_answers": ["Неверно"],
+      "explanation": "У клетки есть мембрана.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    }
+  ]
+}
+[JSON_END]
+
+2026-05-28 15:53:04,076 | INFO | viktorina_obraz | POST /quiz/generate-from-materials | owner=prod-smoke-00000000-0000-4000-8000-000000000001 subject=Biology topic=Cell sources=['manual_text']
+2026-05-28 15:53:04,076 | INFO | viktorina_obraz | generate_quiz_from_fragments | subject=Biology grade=8 topic=Cell count=2
+2026-05-28 15:53:04,076 | INFO | viktorina_obraz | GigaChat mock chat (E2E_MOCK_GIGACHAT)
+2026-05-28 15:53:04,077 | INFO | viktorina_obraz | RAW_MODEL_RESPONSE: 
+[JSON_START]
+{
+  "quiz_title": "E2E Викторина",
+  "subject": "Биология",
+  "grade": "8",
+  "topic": "Клетка",
+  "questions": [
+    {
+      "type": "single_choice",
+      "text": "Что является основной единицей жизни?",
+      "options": ["Атом", "Клетка", "Орган", "Ткань"],
+      "correct_answers": ["Клетка"],
+      "explanation": "Клетка — основная структурная единица.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    },
+    {
+      "type": "true_false",
+      "text": "Клетка не имеет мембраны.",
+      "options": ["Верно", "Неверно"],
+      "correct_answers": ["Неверно"],
+      "explanation": "У клетки есть мембрана.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    }
+  ]
+}
+[JSON_END]
+
+2026-05-28 15:54:53,629 | INFO | viktorina_obraz | POST /quiz/generate-from-materials | owner=prod-smoke-00000000-0000-4000-8000-000000000001 subject=Biology topic=Cell sources=['manual_text']
+2026-05-28 15:54:53,630 | INFO | viktorina_obraz | generate_quiz_from_fragments | subject=Biology grade=8 topic=Cell count=2
+2026-05-28 15:54:53,630 | INFO | viktorina_obraz | GigaChat mock chat (E2E_MOCK_GIGACHAT)
+2026-05-28 15:54:53,630 | INFO | viktorina_obraz | RAW_MODEL_RESPONSE: 
+[JSON_START]
+{
+  "quiz_title": "E2E Викторина",
+  "subject": "Биология",
+  "grade": "8",
+  "topic": "Клетка",
+  "questions": [
+    {
+      "type": "single_choice",
+      "text": "Что является основной единицей жизни?",
+      "options": ["Атом", "Клетка", "Орган", "Ткань"],
+      "correct_answers": ["Клетка"],
+      "explanation": "Клетка — основная структурная единица.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    },
+    {
+      "type": "true_false",
+      "text": "Клетка не имеет мембраны.",
+      "options": ["Верно", "Неверно"],
+      "correct_answers": ["Неверно"],
+      "explanation": "У клетки есть мембрана.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    }
+  ]
+}
+[JSON_END]
+
+2026-05-28 15:56:54,810 | INFO | viktorina_obraz | POST /quiz/generate-from-materials | owner=prod-smoke-00000000-0000-4000-8000-000000000001 subject=Biology topic=Cell sources=['manual_text']
+2026-05-28 15:56:54,810 | INFO | viktorina_obraz | generate_quiz_from_fragments | subject=Biology grade=8 topic=Cell count=2
+2026-05-28 15:56:54,810 | INFO | viktorina_obraz | GigaChat mock chat (E2E_MOCK_GIGACHAT)
+2026-05-28 15:56:54,811 | INFO | viktorina_obraz | RAW_MODEL_RESPONSE: 
+[JSON_START]
+{
+  "quiz_title": "E2E Викторина",
+  "subject": "Биология",
+  "grade": "8",
+  "topic": "Клетка",
+  "questions": [
+    {
+      "type": "single_choice",
+      "text": "Что является основной единицей жизни?",
+      "options": ["Атом", "Клетка", "Орган", "Ткань"],
+      "correct_answers": ["Клетка"],
+      "explanation": "Клетка — основная структурная единица.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    },
+    {
+      "type": "true_false",
+      "text": "Клетка не имеет мембраны.",
+      "options": ["Верно", "Неверно"],
+      "correct_answers": ["Неверно"],
+      "explanation": "У клетки есть мембрана.",
+      "difficulty": "easy",
+      "source_fragment_id": "manual_1"
+    }
+  ]
+}
+[JSON_END]
+
