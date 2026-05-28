@@ -45,3 +45,12 @@ def test_maps_network_error():
 def test_keeps_validation_message():
     mapped = _map_error_message("Укажите тему викторины.")
     assert mapped == "Укажите тему викторины."
+
+
+def test_passes_through_truncated_json_user_message():
+    raw = (
+        "ИИ не завершил ответ. Попробуйте уменьшить число вопросов (например, до 5–7) "
+        "или сократить объём материала."
+    )
+    mapped = _map_error_message(raw)
+    assert mapped == raw

@@ -1,4 +1,5 @@
 from app.schemas.material import SourceFragment
+from app.services.quiz_generation_config import explanation_max_chars
 
 
 def build_quiz_prompt(
@@ -10,6 +11,8 @@ def build_quiz_prompt(
     difficulty: str,
     combined_context: str,
     fragments: list[SourceFragment],
+    *,
+    compact: bool = False,
 ) -> str:
     fragments_info = "\n".join(
         [
@@ -18,11 +21,19 @@ def build_quiz_prompt(
         ]
     )
     valid_fragment_ids = ", ".join(fragment.fragment_id for fragment in fragments)
+    max_explanation = explanation_max_chars(compact=compact)
+
+    compact_block = ""
+    if compact:
+        compact_block = (
+            "\nРежим компактный: сократи формулировки. "
+            "Обязательно закрой ответ тегом [JSON_END].\n"
+        )
 
     return f"""
 Ты — методист и автор школьных викторин.
 Верни только валидный JSON, без markdown, без комментариев и пояснений.
-
+{compact_block}
 Параметры:
 - Предмет: {subject}
 - Класс: {grade}
@@ -68,6 +79,7 @@ def build_quiz_prompt(
 - Для single_choice: 4 варианта, 1 правильный.
 - Для multiple_choice: 5 вариантов, 2 правильных.
 - Для true_false: варианты ровно ["Верно", "Неверно"].
+- Поле explanation: не более {max_explanation} символов, одно короткое предложение.
 - Ключи: correct_answers, source_fragment_id (snake_case).
 - В начале ответа [JSON_START], в конце [JSON_END].
 - Между тегами только валидный JSON.
@@ -82,12 +94,19 @@ def build_regenerate_question_prompt(
     question_type: str,
     current_question_text: str,
     source_fragment_id: str | None,
+    *,
+    compact: bool = False,
 ) -> str:
     fragment_hint = source_fragment_id or "manual_1"
+    max_explanation = explanation_max_chars(compact=compact)
+    compact_block = ""
+    if compact:
+        compact_block = "\nРежим компактный: обязательно закрой ответ тегом [JSON_END].\n"
+
     return f"""
 Ты — методист. Пересоздай один вопрос викторины по тем же параметрам.
 Верни только валидный JSON одного вопроса, без markdown.
-
+{compact_block}
 Параметры викторины:
 - Предмет: {subject}
 - Класс: {grade}
@@ -115,5 +134,6 @@ JSON строго такого вида:
 - single_choice: 4 варианта, 1 правильный.
 - multiple_choice: 5 вариантов, 2 правильных.
 - true_false: варианты ровно ["Верно", "Неверно"].
+- explanation: не более {max_explanation} символов.
 - В начале [JSON_START], в конце [JSON_END].
 """

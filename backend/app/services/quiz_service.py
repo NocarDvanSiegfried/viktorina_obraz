@@ -1,5 +1,4 @@
-import json
-import re
+import time
 
 from app.core.logger import logger
 from app.schemas.material import SourceFragment
@@ -7,46 +6,52 @@ from app.schemas.quiz import DifficultyLevel, GenerateQuizResponse
 from app.services.gigachat_service import gigachat_service
 from app.services.material_service import material_service
 from app.services.prompt_service import build_quiz_prompt, build_regenerate_question_prompt
+from app.services.quiz_generation_config import (
+    QUIZ_GENERATION_MAX_ATTEMPTS,
+    QUESTION_REGENERATE_MAX_ATTEMPTS,
+    compute_chat_max_tokens,
+    explanation_max_chars,
+    truncate_explanation,
+)
+from app.services.quiz_json_parser import JsonExtractionFailed, extract_quiz_json
+from app.services.quiz_model_observability import (
+    ModelResponseDiagnostics,
+    QuizModelResponseError,
+    analyze_model_response,
+    build_parse_error,
+    log_json_parse_failure,
+    log_model_response_received,
+)
 
 
 class QuizService:
     def _extract_json(self, raw_text: str) -> dict:
-        raw_text = raw_text.strip()
+        parsed, _report = extract_quiz_json(raw_text)
+        return parsed
 
-        for start_tag, end_tag in (
-            ("[JSON_START]", "[JSON_END]"),
-            ("JSON_START", "JSON_END"),
-        ):
-            start = raw_text.find(start_tag)
-            end = raw_text.find(end_tag)
-            if start != -1 and end != -1 and end > start:
-                raw_text = raw_text[start + len(start_tag) : end].strip()
-                break
-            if start != -1:
-                raw_text = raw_text[start + len(start_tag) :].strip()
-                break
-
-        if raw_text.startswith("```"):
-            raw_text = raw_text.replace("```json", "").replace("```", "").strip()
-
-        last_brace = raw_text.rfind("}")
-        if last_brace > 0:
-            raw_text = raw_text[: last_brace + 1]
-
-        open_braces = raw_text.count("{")
-        close_braces = raw_text.count("}")
-        open_brackets = raw_text.count("[")
-        close_brackets = raw_text.count("]")
-
-        raw_text += "}" * (open_braces - close_braces)
-        raw_text += "]" * (open_brackets - close_brackets)
-        raw_text = re.sub(r"(?<!\\)\\([a-zA-Z]+)", r"\\\\\1", raw_text)
-        raw_text = raw_text.replace("\n", " ").replace("\r", "").strip()
-
-        if not raw_text:
-            raise ValueError("Пустой JSON после обработки")
-
-        return json.loads(raw_text)
+    def _parse_model_quiz_json(
+        self,
+        raw: str,
+        *,
+        diagnostics: ModelResponseDiagnostics,
+    ) -> dict:
+        try:
+            data, _report = extract_quiz_json(raw)
+            return data
+        except JsonExtractionFailed as exc:
+            err = build_parse_error(
+                diagnostics=diagnostics,
+                extraction=exc.report,
+                parse_error=exc.cause,
+            )
+            log_json_parse_failure(
+                code=err.code,
+                diagnostics=diagnostics,
+                extraction=exc.report,
+                technical_detail=err.technical_detail,
+                raw_preview=raw,
+            )
+            raise err from exc.cause
 
     def _normalize_difficulty_value(self, value: str) -> str:
         if not isinstance(value, str):
@@ -61,7 +66,13 @@ class QuizService:
             return value
         return "easy"
 
-    def _normalize_question_dict(self, question: dict, fallback_difficulty: str) -> dict:
+    def _normalize_question_dict(
+        self,
+        question: dict,
+        fallback_difficulty: str,
+        *,
+        compact: bool = False,
+    ) -> dict:
         normalized = dict(question)
 
         if "correct answers" in normalized and "correct_answers" not in normalized:
@@ -80,13 +91,25 @@ class QuizService:
         if "correct_answers" not in normalized:
             normalized["correct_answers"] = []
 
+        if isinstance(normalized.get("explanation"), str):
+            normalized["explanation"] = truncate_explanation(
+                normalized["explanation"],
+                max_chars=explanation_max_chars(compact=compact),
+            )
+
         return normalized
 
-    def _normalize_quiz_response_data(self, data: dict, fallback_difficulty: str) -> dict:
+    def _normalize_quiz_response_data(
+        self,
+        data: dict,
+        fallback_difficulty: str,
+        *,
+        compact: bool = False,
+    ) -> dict:
         normalized = dict(data)
         questions = normalized.get("questions", [])
         normalized["questions"] = [
-            self._normalize_question_dict(question, fallback_difficulty)
+            self._normalize_question_dict(question, fallback_difficulty, compact=compact)
             for question in questions
             if isinstance(question, dict)
         ]
@@ -103,6 +126,57 @@ class QuizService:
             for question in result.questions
         ]
         return result.model_copy(update={"questions": updated_questions})
+
+    def _diagnostics_for_raw(
+        self,
+        raw: str,
+        *,
+        question_count: int | None,
+    ) -> ModelResponseDiagnostics:
+        meta = gigachat_service.last_chat_meta
+        return analyze_model_response(
+            raw,
+            finish_reason=meta.finish_reason if meta else None,
+            question_count=question_count,
+            completion_tokens=meta.completion_tokens if meta else None,
+        )
+
+    def _chat_and_parse_quiz(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        temperature: float,
+        question_count: int,
+        difficulty: str,
+        compact: bool,
+    ) -> GenerateQuizResponse:
+        max_tokens = compute_chat_max_tokens(question_count)
+        raw = gigachat_service.chat(
+            messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+        diagnostics = self._diagnostics_for_raw(raw, question_count=question_count)
+        meta = gigachat_service.last_chat_meta
+        log_model_response_received(
+            diagnostics=diagnostics,
+            completion_tokens=meta.completion_tokens if meta else None,
+            prompt_tokens=meta.prompt_tokens if meta else None,
+        )
+
+        if diagnostics.likely_truncated:
+            logger.warning(
+                "JSON_TRUNCATED | question_count=%s chars=%s finish_reason=%s",
+                question_count,
+                diagnostics.raw_chars,
+                diagnostics.finish_reason,
+            )
+
+        data = self._parse_model_quiz_json(raw, diagnostics=diagnostics)
+        data = self._normalize_quiz_response_data(data, difficulty, compact=compact)
+        result = GenerateQuizResponse(**data)
+        return self._apply_difficulty_to_all_questions(result, difficulty)
 
     def generate_quiz_from_fragments(
         self,
@@ -127,36 +201,62 @@ class QuizService:
             max_chars=6000,
         )
 
-        prompt = build_quiz_prompt(
-            subject=subject,
-            grade=grade,
-            topic=topic,
-            question_count=question_count,
-            question_types=question_types,
-            difficulty=difficulty,
-            combined_context=combined_context,
-            fragments=fragments,
-        )
+        last_error: QuizModelResponseError | None = None
 
-        raw = gigachat_service.chat(
-            messages=[
+        for attempt in range(1, QUIZ_GENERATION_MAX_ATTEMPTS + 1):
+            compact = attempt > 1
+            prompt = build_quiz_prompt(
+                subject=subject,
+                grade=grade,
+                topic=topic,
+                question_count=question_count,
+                question_types=question_types,
+                difficulty=difficulty,
+                combined_context=combined_context,
+                fragments=fragments,
+                compact=compact,
+            )
+            messages = [
                 {"role": "system", "content": "Ты возвращаешь только валидный JSON."},
                 {"role": "user", "content": prompt},
-            ],
-            temperature=0.2,
-        )
+            ]
+            temperature = 0.15 if compact else 0.2
 
-        logger.info("RAW_MODEL_RESPONSE: %s", raw[:2000])
+            try:
+                if attempt > 1:
+                    logger.info(
+                        "QUIZ_GENERATION_RETRY | attempt=%s/%s compact=%s",
+                        attempt,
+                        QUIZ_GENERATION_MAX_ATTEMPTS,
+                        compact,
+                    )
+                    time.sleep(0.5)
 
-        try:
-            data = self._extract_json(raw)
-            data = self._normalize_quiz_response_data(data, difficulty)
-            result = GenerateQuizResponse(**data)
-            return self._apply_difficulty_to_all_questions(result, difficulty)
-        except Exception as exc:
-            logger.error("JSON_PARSE_ERROR: %s", exc)
-            logger.error("BROKEN_RAW_RESPONSE: %s", raw[:2000])
-            raise
+                return self._chat_and_parse_quiz(
+                    messages=messages,
+                    temperature=temperature,
+                    question_count=question_count,
+                    difficulty=difficulty,
+                    compact=compact,
+                )
+            except QuizModelResponseError as exc:
+                last_error = exc
+                logger.warning(
+                    "QUIZ_GENERATION_RETRY_SCHEDULED | attempt=%s code=%s",
+                    attempt,
+                    exc.code,
+                )
+            except Exception as exc:
+                logger.error(
+                    "JSON_PARSE_ERROR | unexpected | subject=%s topic=%s | %s",
+                    subject,
+                    topic,
+                    exc,
+                )
+                raise
+
+        assert last_error is not None
+        raise last_error
 
     def regenerate_question(
         self,
@@ -168,31 +268,63 @@ class QuizService:
         current_question_text: str,
         source_fragment_id: str | None,
     ) -> dict:
-        prompt = build_regenerate_question_prompt(
-            subject=subject,
-            grade=grade,
-            topic=topic,
-            difficulty=difficulty,
-            question_type=question_type,
-            current_question_text=current_question_text,
-            source_fragment_id=source_fragment_id,
-        )
+        last_error: QuizModelResponseError | None = None
 
-        raw = gigachat_service.chat(
-            messages=[
+        for attempt in range(1, QUESTION_REGENERATE_MAX_ATTEMPTS + 1):
+            compact = attempt > 1
+            prompt = build_regenerate_question_prompt(
+                subject=subject,
+                grade=grade,
+                topic=topic,
+                difficulty=difficulty,
+                question_type=question_type,
+                current_question_text=current_question_text,
+                source_fragment_id=source_fragment_id,
+                compact=compact,
+            )
+            messages = [
                 {"role": "system", "content": "Ты возвращаешь только валидный JSON."},
                 {"role": "user", "content": prompt},
-            ],
-            temperature=0.3,
-        )
+            ]
 
-        data = self._extract_json(raw)
-        if isinstance(data, dict) and "questions" in data and data["questions"]:
-            data = data["questions"][0]
-        if not isinstance(data, dict):
-            raise ValueError("Модель вернула некорректный формат вопроса")
+            try:
+                if attempt > 1:
+                    logger.info(
+                        "QUESTION_REGENERATE_RETRY | attempt=%s/%s",
+                        attempt,
+                        QUESTION_REGENERATE_MAX_ATTEMPTS,
+                    )
+                    time.sleep(0.5)
 
-        return self._normalize_question_dict(data, difficulty)
+                raw = gigachat_service.chat(
+                    messages,
+                    temperature=0.25 if compact else 0.3,
+                    max_tokens=compute_chat_max_tokens(1),
+                )
+                diagnostics = self._diagnostics_for_raw(raw, question_count=1)
+                meta = gigachat_service.last_chat_meta
+                log_model_response_received(
+                    diagnostics=diagnostics,
+                    completion_tokens=meta.completion_tokens if meta else None,
+                    prompt_tokens=meta.prompt_tokens if meta else None,
+                )
+
+                data = self._parse_model_quiz_json(raw, diagnostics=diagnostics)
+                if isinstance(data, dict) and "questions" in data and data["questions"]:
+                    data = data["questions"][0]
+                if not isinstance(data, dict):
+                    raise ValueError("Модель вернула некорректный формат вопроса")
+
+                return self._normalize_question_dict(
+                    data,
+                    difficulty,
+                    compact=compact,
+                )
+            except QuizModelResponseError as exc:
+                last_error = exc
+
+        assert last_error is not None
+        raise last_error
 
 
 quiz_service = QuizService()

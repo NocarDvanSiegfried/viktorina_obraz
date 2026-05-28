@@ -26,6 +26,7 @@ from app.services.question_service import (
     normalize_answers,
     validate_question_payload,
 )
+from app.api.quiz_generation_errors import raise_quiz_ai_http_error
 from app.services.quiz_service import quiz_service
 from app.services import fragment_catalog_service, quiz_version_service
 from app.services.quiz_version_service import QuizVersionNotFoundError
@@ -632,10 +633,7 @@ def regenerate_question(
             source_fragment_id=question.source_fragment,
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Не удалось пересоздать вопрос: {exc}",
-        ) from exc
+        raise_quiz_ai_http_error(exc, action_label="пересоздать вопрос")
 
     new_type = regenerated.get("type", question.question_type)
     cleaned_answers = normalize_answers(regenerated.get("options", []))
@@ -972,10 +970,7 @@ async def generate_quiz_from_materials(
             fragments=fragments,
         )
     except Exception as exc:
-        raise HTTPException(
-            status_code=502,
-            detail=f"Не удалось сгенерировать викторину: {exc}",
-        ) from exc
+        raise_quiz_ai_http_error(exc, action_label="сгенерировать викторину")
 
     quiz = _save_quiz_to_db(
         db,

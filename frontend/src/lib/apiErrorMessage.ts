@@ -31,6 +31,14 @@ export function mapErrorMessage(
 
   const lower = trimmed.toLowerCase()
 
+  if (
+    trimmed.startsWith("ИИ ") ||
+    trimmed.startsWith("ИИ не ") ||
+    lower.includes("уменьшите число вопросов")
+  ) {
+    return trimmed
+  }
+
   if (GIGACHAT_PATTERNS.some((pattern) => lower.includes(pattern))) {
     return (
       "Сервис ИИ временно недоступен. Подождите минуту и попробуйте снова. " +

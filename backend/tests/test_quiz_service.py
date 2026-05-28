@@ -74,7 +74,7 @@ def test_normalize_quiz_response_applies_difficulty(quiz_service: QuizService):
 
 
 def test_generate_quiz_from_fragments_with_mock_gigachat(monkeypatch, quiz_service: QuizService):
-    def fake_chat(messages, temperature=0.2):
+    def fake_chat(messages, temperature=0.2, max_tokens=None):
         assert messages[0]["role"] == "system"
         return SAMPLE_MODEL_JSON
 
