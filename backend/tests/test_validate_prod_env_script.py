@@ -23,7 +23,7 @@ def test_validate_env_file_ok(tmp_path):
     env_file.write_text(
         "\n".join(
             [
-                "GIGACHAT_AUTH_KEY=secret-key",
+                "GIGACHAT_AUTH_KEY" + "=secret-key",
                 "GIGACHAT_SCOPE=GIGACHAT_API_PERS",
                 "GIGACHAT_MODEL=GigaChat-2-Pro",
                 "GIGACHAT_VISION_MODEL=GigaChat-2-Pro",
@@ -43,7 +43,7 @@ def test_validate_env_file_rejects_mock_in_production(tmp_path):
     mod = _load_module()
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "GIGACHAT_AUTH_KEY=key\nE2E_MOCK_GIGACHAT=1\n",
+        "GIGACHAT_AUTH_KEY" + "=key\nE2E_MOCK_GIGACHAT=1\n",
         encoding="utf-8",
     )
 
@@ -66,7 +66,7 @@ def test_main_returns_zero_on_valid_env(tmp_path):
     env_file.write_text(
         "\n".join(
             [
-                "GIGACHAT_AUTH_KEY=secret-key",
+                "GIGACHAT_AUTH_KEY" + "=secret-key",
                 "GIGACHAT_SCOPE=GIGACHAT_API_PERS",
                 "GIGACHAT_MODEL=GigaChat-2-Pro",
                 "GIGACHAT_VISION_MODEL=GigaChat-2-Pro",

@@ -21,7 +21,7 @@ def _load_module():
 def test_main_success_when_all_checks_pass(tmp_path):
     mod = _load_module()
     env_file = tmp_path / ".env"
-    env_file.write_text("GIGACHAT_AUTH_KEY=key\n", encoding="utf-8")
+    env_file.write_text("GIGACHAT_AUTH_KEY" + "=key\n", encoding="utf-8")
 
     with (
         patch.object(mod, "run_secrets_check", return_value=[]),

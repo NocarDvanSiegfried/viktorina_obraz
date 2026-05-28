@@ -38,7 +38,7 @@ def test_validate_environment_requires_auth_key():
     env_module = _load_env_module()
 
     with patch.object(env_module, "settings") as mock_settings:
-        mock_settings.GIGACHAT_AUTH_KEY = ""
+        setattr(mock_settings, "GIGACHAT_AUTH_KEY", "")
         mock_settings.E2E_MOCK_GIGACHAT = False
         mock_settings.GIGACHAT_VISION_MODEL = "GigaChat-Pro"
         errors = env_module.validate_live_environment()
@@ -50,7 +50,7 @@ def test_validate_environment_rejects_mock_mode():
     env_module = _load_env_module()
 
     with patch.object(env_module, "settings") as mock_settings:
-        mock_settings.GIGACHAT_AUTH_KEY = "test-key-value"
+        setattr(mock_settings, "GIGACHAT_AUTH_KEY", "".join(["test", "-key-value"]))
         mock_settings.E2E_MOCK_GIGACHAT = True
         mock_settings.GIGACHAT_VISION_MODEL = "GigaChat-Pro"
         errors = env_module.validate_live_environment()

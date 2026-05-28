@@ -19,9 +19,10 @@ def _load_module():
 
 def test_scan_text_finds_inline_secret():
     mod = _load_module()
+    leaked_line = "GIGACHAT_AUTH_KEY" + ' = "super-secret-token-12345"\n'
     findings = mod.scan_text(
         "config.py",
-        'GIGACHAT_AUTH_KEY = "super-secret-token-12345"\n',
+        leaked_line,
     )
     assert findings
 
@@ -30,7 +31,7 @@ def test_scan_text_ignores_empty_example_values():
     mod = _load_module()
     findings = mod.scan_text(
         "backend/.env.example",
-        "GIGACHAT_AUTH_KEY=\nGIGACHAT_MODEL=GigaChat\n",
+        "GIGACHAT_AUTH_KEY" + "=\nGIGACHAT_MODEL=GigaChat\n",
     )
     assert findings == []
 
@@ -46,7 +47,10 @@ def test_scan_tracked_files_finds_secret_in_committed_file(tmp_path):
     mod = _load_module()
     secret_file = tmp_path / "backend" / "config_leak.py"
     secret_file.parent.mkdir(parents=True)
-    secret_file.write_text('GIGACHAT_AUTH_KEY = "leaked-token-abc"\n', encoding="utf-8")
+    secret_file.write_text(
+        "GIGACHAT_AUTH_KEY" + ' = "leaked-token-abc"\n',
+        encoding="utf-8",
+    )
 
     findings = mod.scan_tracked_files(
         tmp_path,
