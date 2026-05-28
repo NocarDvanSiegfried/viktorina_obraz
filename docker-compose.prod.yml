@@ -6,7 +6,7 @@ services:
     build:
       context: ./backend
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "${BACKEND_BIND_HOST:-127.0.0.1}:${BACKEND_PORT:-8001}:8000"
     env_file:
       - ${BACKEND_ENV_FILE:-./backend/.env.production}
     environment:
@@ -33,7 +33,7 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-}
     ports:
-      - "${FRONTEND_PORT:-8080}:80"
+      - "${FRONTEND_BIND_HOST:-127.0.0.1}:${FRONTEND_PORT:-8081}:80"
     depends_on:
       backend:
         condition: service_healthy
