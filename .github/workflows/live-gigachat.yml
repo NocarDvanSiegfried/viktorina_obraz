@@ -1,0 +1,50 @@
+name: Live GigaChat
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Live generation script
+        env:
+          GIGACHAT_AUTH_KEY: ${{ secrets.GIGACHAT_AUTH_KEY }}
+          GIGACHAT_SCOPE: ${{ secrets.GIGACHAT_SCOPE }}
+          GIGACHAT_MODEL: ${{ secrets.GIGACHAT_MODEL }}
+          GIGACHAT_VISION_MODEL: ${{ secrets.GIGACHAT_VISION_MODEL }}
+          GIGACHAT_CA_BUNDLE_FILE: ./certs/russian_trusted_root_ca_pem.crt
+          E2E_MOCK_GIGACHAT: ""
+        run: python ../scripts/live_gigachat_check.py
+
+      - name: Live Vision OCR script (day 18)
+        env:
+          GIGACHAT_AUTH_KEY: ${{ secrets.GIGACHAT_AUTH_KEY }}
+          GIGACHAT_SCOPE: ${{ secrets.GIGACHAT_SCOPE }}
+          GIGACHAT_MODEL: ${{ secrets.GIGACHAT_MODEL }}
+          GIGACHAT_VISION_MODEL: ${{ secrets.GIGACHAT_VISION_MODEL }}
+          GIGACHAT_CA_BUNDLE_FILE: ./certs/russian_trusted_root_ca_pem.crt
+          E2E_MOCK_GIGACHAT: ""
+        run: python ../scripts/live_gigachat_vision_check.py
+
+      - name: Pytest integration (live GigaChat)
+        env:
+          GIGACHAT_AUTH_KEY: ${{ secrets.GIGACHAT_AUTH_KEY }}
+          GIGACHAT_SCOPE: ${{ secrets.GIGACHAT_SCOPE }}
+          GIGACHAT_MODEL: ${{ secrets.GIGACHAT_MODEL }}
+          GIGACHAT_VISION_MODEL: ${{ secrets.GIGACHAT_VISION_MODEL }}
+          GIGACHAT_CA_BUNDLE_FILE: ./certs/russian_trusted_root_ca_pem.crt
+          E2E_MOCK_GIGACHAT: ""
+        run: pytest -m integration -q

@@ -1,0 +1,22 @@
+{
+  "name": "viktorina-obraz",
+  "private": true,
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "health-check": "python scripts/health_check.py",
+    "live:gigachat": "python scripts/live_gigachat_check.py",
+    "live:vision": "python scripts/live_gigachat_vision_check.py",
+    "secrets:check": "python scripts/check_secrets.py",
+    "env:validate": "python scripts/validate_prod_env.py --env-file backend/.env --production",
+    "deploy:check": "python scripts/deploy_readiness.py",
+    "smoke:api": "python scripts/smoke_api_check.py",
+    "smoke:prod": "python scripts/prod_smoke_run.py",
+    "test:e2e:prod": "playwright test e2e/tests/prod-smoke.spec.ts",
+    "demo:jury": "python scripts/demo_jury_flow.py",
+    "gate:final": "python scripts/final_gate.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.52.0"
+  }
+}

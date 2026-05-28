@@ -1,0 +1,34 @@
+# Large hackathon PDFs / extracts (markdown docs stay in repo)
+docs/*.pdf
+docs/*.pptx
+docs/*_extract.txt
+
+.env
+.env.production
+plan.md
+SchoolQuizAI
+# Backend
+backend/.env
+backend/.env.production
+backend/data/
+backend/.venv/
+backend/**/__pycache__/
+backend/.pytest_cache/
+*.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.production
+
+# Root (Playwright E2E)
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+backend/data/e2e.db
+.playwright-mcp/
+docs/
+plan-ux-ui.md

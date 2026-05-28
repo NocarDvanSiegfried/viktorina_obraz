@@ -1,0 +1,28 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    environment:
+      FRONTEND_ORIGIN: http://localhost:8080
+      DATABASE_URL: sqlite:///./data/app.db
+      # Local Docker smoke: E2E_MOCK_GIGACHAT=1 docker compose up -d --force-recreate backend
+      E2E_MOCK_GIGACHAT: ${E2E_MOCK_GIGACHAT:-}
+    volumes:
+      - backend-data:/app/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  backend-data:
